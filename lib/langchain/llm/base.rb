@@ -80,5 +80,14 @@ module Langchain::LLM
         parameters: params
       )
     end
+
+    #
+    # Returns an instance of Langchain::LLM::Parameters::Complete
+    #
+    def complete_parameters(params = {})
+      @complete_parameters ||= Langchain::LLM::Parameters::Complete.new(
+        parameters: params
+      )
+    end
   end
 end
