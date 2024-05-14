@@ -30,6 +30,43 @@ RSpec.describe Langchain::LLM::Anthropic do
         expect(subject.complete(prompt: completion).model).to eq("claude-2.1")
       end
     end
+
+    context "with additional parameters" do
+      before do
+        allow(subject.client).to receive(:complete)
+          .with(parameters: {
+            model: "claude-3-opus-20240229",
+            prompt: completion,
+            temperature: 1,
+            stop_sequences: ["stop"],
+            max_tokens_to_sample: 100,
+            metadata: {beep: "beep"},
+            stream: true
+          })
+          .and_return(response)
+      end
+
+      it "returns a completion" do
+        expect(
+          subject.complete(
+            model: "claude-3-opus-20240229",
+            prompt: completion,
+            stop_sequences: ["stop"],
+            temperature: 1,
+            max_tokens: 100,
+            metadata: {beep: "beep"},
+            stream: true,
+            # include unified params that are ignored to ensure they don't
+            # pass through to the client
+            system: "You are a meniacal robot",
+            response_format: "Boop beep, ha ha",
+            seed: 1,
+            tools: ["?"],
+            tool_choice: "?"
+          ).completion
+        ).to eq(" The sky has no definitive")
+      end
+    end
   end
 
   describe "#chat" do

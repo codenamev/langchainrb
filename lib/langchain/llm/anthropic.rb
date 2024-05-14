@@ -41,45 +41,36 @@ module Langchain::LLM
       )
       chat_parameters.ignore(:n, :user)
       chat_parameters.remap(stop: :stop_sequences)
+
+      complete_parameters.update(
+        model: {default: @defaults[:completion_model_name]},
+        temperature: {default: @defaults[:temperature]},
+        max_tokens: {default: @defaults[:max_tokens_to_sample]},
+        metadata: {},
+        epoch: {}
+      )
+      complete_parameters.ignore(:response_format, :seed, :system, :tool_choice, :tools)
+      complete_parameters.remap(max_tokens: :max_tokens_to_sample, stop: :stop_sequences)
     end
 
     # Generate a completion for a given prompt
     #
-    # @param prompt [String] Prompt to generate a completion for
-    # @param model [String] The model to use
-    # @param max_tokens_to_sample [Integer] The maximum number of tokens to sample
-    # @param stop_sequences [Array<String>] The stop sequences to use
-    # @param temperature [Float] The temperature to use
-    # @param top_p [Float] The top p value to use
-    # @param top_k [Integer] The top k value to use
-    # @param metadata [Hash] The metadata to use
-    # @param stream [Boolean] Whether to stream the response
+    # @param params [Hash] The parameters to pass to the API
+    # @option :prompt [String] Prompt to generate a completion for
+    # @option :model [String] The model to use
+    # @option :max_tokens_to_sample [Integer] The maximum number of tokens to sample
+    # @option :stop_sequences [Array<String>] The stop sequences to use
+    # @option :temperature [Float] The temperature to use
+    # @option :top_p [Float] The top p value to use
+    # @option :top_k [Integer] The top k value to use
+    # @option :metadata [Hash] The metadata to use
+    # @option :stream [Boolean] Whether to stream the response
     # @return [Langchain::LLM::AnthropicResponse] The completion
-    def complete(
-      prompt:,
-      model: @defaults[:completion_model_name],
-      max_tokens_to_sample: @defaults[:max_tokens_to_sample],
-      stop_sequences: nil,
-      temperature: @defaults[:temperature],
-      top_p: nil,
-      top_k: nil,
-      metadata: nil,
-      stream: nil
-    )
-      raise ArgumentError.new("model argument is required") if model.empty?
-      raise ArgumentError.new("max_tokens_to_sample argument is required") if max_tokens_to_sample.nil?
+    def complete(params = {})
+      parameters = complete_parameters.to_params(params)
 
-      parameters = {
-        model: model,
-        prompt: prompt,
-        max_tokens_to_sample: max_tokens_to_sample,
-        temperature: temperature
-      }
-      parameters[:stop_sequences] = stop_sequences if stop_sequences
-      parameters[:top_p] = top_p if top_p
-      parameters[:top_k] = top_k if top_k
-      parameters[:metadata] = metadata if metadata
-      parameters[:stream] = stream if stream
+      raise ArgumentError.new("model argument is required") if parameters[:model].to_s.empty?
+      raise ArgumentError.new("max_tokens argument is required") if parameters[:max_tokens_to_sample].nil?
 
       response = client.complete(parameters: parameters)
       Langchain::LLM::AnthropicResponse.new(response)
