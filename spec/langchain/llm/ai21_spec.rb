@@ -6,6 +6,53 @@ RSpec.describe Langchain::LLM::AI21 do
   let(:subject) { described_class.new(api_key: "123") }
 
   describe "#complete" do
+    let(:valid_client_params) do
+      {
+        prompt: "Hello World",
+        numResults: 1,
+        maxTokens: 16,
+        minTokens: 0,
+        temperature: 1,
+        topP: 1,
+        minP: 0,
+        stopSequences: [],
+        topKReturn: 0,
+        logitBias: {},
+        frequencyPenalty: {
+          scale: 0,
+          applyToWhitespaces: true,
+          applyToPunctuations: true,
+          applyToNumbers: true,
+          applyToStopwords: true,
+          applyToEmojis: true
+        },
+        presencePenalty: {
+          scale: 0,
+          applyToWhitespaces: true,
+          applyToPunctuations: true,
+          applyToNumbers: true,
+          applyToStopwords: true,
+          applyToEmojis: true
+        },
+        countPenalty: {
+          scale: 0,
+          applyToWhitespaces: true,
+          applyToPunctuations: true,
+          applyToNumbers: true,
+          applyToStopwords: true,
+          applyToEmojis: true
+        },
+        epoch: 0
+      }
+    end
+    let(:valid_params) do
+      params = valid_client_params.dup
+      params[:n] = params.delete(:numResults)
+      params[:stop] = params.delete(:stopSequences)
+      params[:top_k] = params.delete(:topKReturn)
+      params[:epoch] = params[:logitBias]
+    end
+
     let(:response) do
       {
         id: "812c650e-a0d0-4502-a084-45b0d32fcb9c",
@@ -37,18 +84,31 @@ RSpec.describe Langchain::LLM::AI21 do
     context "with additional parameters" do
       before do
         allow(subject.client).to receive(:complete)
-          .with("Hello World", {
-            maxTokens: 1000,
-            temperature: 0.7,
-            model: "j2-light"
-          })
-          .and_return(response)
+          .with(
+            valid_client_params[:prompt],
+            valid_client_params.except(:prompt).merge({maxTokens: 1000, temperature: 0.7, model: "j2-light"})
+          ).and_return(response)
 
         allow(Langchain::Utils::TokenLength::AI21Validator).to receive(:validate_max_tokens!).and_return(1000)
       end
 
       it "returns a completion" do
-        expect(subject.complete(prompt: "Hello World", model: "j2-light", temperature: 0.7).completion).to eq(
+        expect(
+          subject.complete(
+            valid_client_params.merge(
+              prompt: "Hello World",
+              model: "j2-light",
+              temperature: 0.7,
+              # include unified params that are ignored to ensure they don't
+              # pass through to the client
+              system: "You are a meniacal robot",
+              response_format: "Boop beep, ha ha",
+              seed: 1,
+              tools: ["?"],
+              tool_choice: "?"
+            )
+          ).completion
+        ).to eq(
           "\nWhat is the meaning of life? What is the meaning of life?\nWhat is the meaning"
         )
       end
