@@ -186,4 +186,54 @@ RSpec.describe Langchain::LLM::UnifiedParameters do
       )
     end
   end
+
+  describe "#[]=(field, value)" do
+    it "sets the field's value" do
+      subject[:beep] = "beepity"
+      expect(subject.to_params).to match(
+        beep: "beepity"
+      )
+    end
+
+    context "when field has a default" do
+      it "preserves the default" do
+        subject[:beep] = nil
+        expect(subject.to_params).to match(
+          beep: "beep"
+        )
+      end
+    end
+
+    context "when field is remapped" do
+      before { subject.remap(beep: :beeps) }
+      it "preserves the renamed field" do
+        subject[:beep] = "beepity"
+        expect(subject.to_params).to match(
+          beeps: "beepity"
+        )
+        subject[:beeps] = "beeper"
+        expect(subject.to_params).to match(
+          beeps: "beeper"
+        )
+      end
+    end
+
+    context "when field has an alias" do
+      before { subject.alias_field(:beep, as: :beeps) }
+      it "preserves the aliased field" do
+        subject[:beeps] = "beepity"
+        expect(subject.to_params).to match(
+          beep: "beepity"
+        )
+      end
+
+      it "overrides existing aliased field values" do
+        subject[:beep] = "beepity"
+        subject[:beeps] = "beeper"
+        expect(subject.to_params).to match(
+          beep: "beeper"
+        )
+      end
+    end
+  end
 end

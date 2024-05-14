@@ -20,7 +20,7 @@ module Langchain::LLM
       @schema.each do |name, param|
         @aliases[name] = Set.new(Array(param[:aliases])) if param[:aliases]
       end
-      @parameters = to_params(parameters.to_h) if !parameters.to_h.empty?
+      @parameters = (!parameters.to_h.empty?) ? to_params(parameters.to_h) : {}
     end
 
     def to_params(params = {})
@@ -87,6 +87,19 @@ module Langchain::LLM
 
     def [](key)
       to_params[key]
+    end
+
+    def []=(field, value)
+      @parameters[field] = value if @schema.key?(field)
+      fields = Set.new(@remapped.find { |original_field, renamed_field| [original_field, renamed_field].include?(field) } || [])
+      fields.each do |field_name|
+        @parameters[field_name] = value
+      end
+      @aliases.each do |aliased_field, aliased_keys|
+        aliased_keys.each do |alias_key|
+          @parameters[aliased_field] = value if aliased_keys.include?(field)
+        end
+      end
     end
 
     private
