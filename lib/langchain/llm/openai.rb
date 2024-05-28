@@ -45,10 +45,23 @@ module Langchain::LLM
         logprobs: {},
         top_logprobs: {},
         n: {default: @defaults[:n]},
+        stream_options: {},
         temperature: {default: @defaults[:temperature]},
         user: {}
       )
       chat_parameters.ignore(:top_k)
+
+      complete_parameters.update(
+        model: {default: @defaults[:chat_completion_model_name]},
+        logprobs: {},
+        top_logprobs: {},
+        n: {default: @defaults[:n]},
+        stream_options: {},
+        temperature: {default: @defaults[:temperature]},
+        user: {}
+      )
+      complete_parameters.alias_field(:stop, as: :stop_sequences)
+      complete_parameters.ignore(:top_k)
     end
 
     # Generate an embedding for a given text
@@ -94,18 +107,35 @@ module Langchain::LLM
     # rubocop:disable Style/ArgumentsForwarding
     # Generate a completion for a given prompt
     #
-    # @param prompt [String] The prompt to generate a completion for
     # @param params [Hash] The parameters to pass to the `chat()` method
+    # @option :prompt [String] The prompt to generate a completion for
+    # @option :frequency_penalty [Hash] Penalize new tokens based on their existing frequency
+    # @option :logit_bias [Hash] Modify the likelihood of specified tokens appearing
+    # @option :logprobs [Boolean] Whether to return log probabilities of the output tokens or not
+    # @option :max_tokens [Integer] The maximum number of tokens to sample
+    # @option :model [String] The model to use
+    # @option :n [Integer] Number of results to return
+    # @option :presence_penalty [Hash] Penalize new tokens based on whether they appear in the text so far
+    # @option :response_format [Hash] The format that the model must output (e.g. `{"type": "json_object"}`)
+    # @option :seed [Integer] A unique number to make a best effort to sample deterministically
+    # @option :stop [String, Array<String>] The stop sequences to use
+    # @option :stream [Boolean] Whether to stream the response
+    # @option :stream_options [Hash] `include_usage: true` adds a `usage` field to streamed chunks
+    # @option :temperature [Float] The temperature to use
+    # @option :tool_choice [String, Hash] Controls which (if any) tool is called by the model.
+    # @option :tools [Array<Hash>] A list of tools the model may call (https://platform.openai.com/docs/guides/text-generation/function-calling)
+    # @option :top_p [Float] Use nucleus sampling.
+    # @option :user [String] A unique identifier representing your end-user
     # @return [Langchain::LLM::OpenAIResponse] Response object
-    def complete(prompt:, **params)
+    def complete(params = {})
       warn "DEPRECATED: `Langchain::LLM::OpenAI#complete` is deprecated, and will be removed in the next major version. Use `Langchain::LLM::OpenAI#chat` instead."
 
-      if params[:stop_sequences]
-        params[:stop] = params.delete(:stop_sequences)
-      end
-      # Should we still accept the `messages: []` parameter here?
-      messages = [{role: "user", content: prompt}]
-      chat(messages: messages, **params)
+      parameters = complete_parameters.to_params(params)
+      parameters[:messages] = []
+      parameters[:messages] << {role: "system", content: parameters.delete(:system)} if parameters[:system]
+      parameters[:messages] << {role: "user", content: parameters.delete(:prompt)}
+
+      chat(parameters)
     end
     # rubocop:enable Style/ArgumentsForwarding
 

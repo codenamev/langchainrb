@@ -228,7 +228,6 @@ RSpec.describe Langchain::LLM::OpenAI do
 
     before do
       allow(subject.client).to receive(:chat).with(parameters).and_return(response)
-      allow(subject.client).to receive(:chat).with(parameters).and_return(response)
     end
 
     context "with default parameters" do
@@ -342,14 +341,75 @@ RSpec.describe Langchain::LLM::OpenAI do
     end
 
     context "with prompt and parameters" do
+      let(:valid_params) do
+        {
+          model: "gpt-3.5-turbo",
+          prompt: "Hello World",
+          frequency_penalty: -1,
+          logit_bias: {"2435": -100, "640": -100},
+          logprobs: true,
+          max_tokens: 16,
+          n: 1,
+          presence_penalty: 1,
+          response_format: {type: "json_object"},
+          seed: 22,
+          stop: ["stahp"],
+          stream: true,
+          stream_options: {include_usage: true},
+          temperature: 1,
+          tool_choice: "auto",
+          tools: Langchain::Tool::Calculator.new.to_openai_tools,
+          top_p: 1,
+          user: 123
+        }
+      end
       let(:parameters) do
-        {parameters: {n: 1, model: "gpt-3.5-turbo", messages: [{content: "Hello World", role: "user"}], temperature: 1.0}} # , max_tokens: 4087}}
+        {
+          parameters: valid_params.except(:prompt, :system).merge(
+            messages: [
+              {role: "user", content: valid_params[:prompt]}
+            ]
+          )
+        }
       end
 
       it "returns a completion" do
-        response = subject.complete(prompt: "Hello World", model: "gpt-3.5-turbo", temperature: 1.0)
+        response = subject.complete(
+          prompt: valid_params[:prompt],
+          **valid_params.except(:prompt, :stop).merge(stop_sequences: valid_params[:stop])
+        )
 
         expect(response.completion).to eq("The meaning of life is subjective and can vary from person to person.")
+      end
+
+      context "with a system message" do
+        let(:complete_params_with_system) do
+          {
+            system: "You are a duck",
+            prompt: "What is the meaning of life?",
+            stop: ["stahp"]
+          }
+        end
+        let(:parameters) do
+          {
+            parameters: complete_params_with_system.except(:prompt, :system).merge(
+              model: "gpt-3.5-turbo",
+              n: 1,
+              stop: ["stahp"],
+              temperature: 0.0,
+              messages: [
+                {role: "system", content: complete_params_with_system[:system]},
+                {role: "user", content: complete_params_with_system[:prompt]}
+              ]
+            )
+          }
+        end
+
+        it "returns a completion using the system message" do
+          response = subject.complete(complete_params_with_system)
+
+          expect(response.completion).to eq("The meaning of life is subjective and can vary from person to person.")
+        end
       end
     end
 
