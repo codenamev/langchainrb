@@ -27,7 +27,7 @@ module Langchain::LLM::Parameters
       frequency_penalty: {}, # Range: [-2, 2]
       presence_penalty: {}, # Range: [-2, 2]
       repetition_penalty: {}, # Range: (0, 2]
-      seed: {}, # OpenAI only
+      seed: {}, # OpenAI/Cohere only
 
       # Function-calling
       tools: {default: []},

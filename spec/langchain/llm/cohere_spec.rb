@@ -70,19 +70,42 @@ RSpec.describe Langchain::LLM::Cohere do
         )
       }
 
-      # TODO: Fix this test
-      # The model specified above ({completion_model_name: "base-light"}) is not being used when the call is made.
-      xit "passes correct options to the completions method" do
+      it "passes correct options to the completions method" do
         expect(subject.client).to receive(:generate).with(
           {
             max_tokens: 2045,
             model: "base-light",
             prompt: "Hello World",
             temperature: 0.0,
-            truncate: "START"
+            truncate: "NONE",
+            num_generations: 3,
+            stop_sequences: ["."],
+            k: 1.0,
+            p: 0.5,
+            seed: 5,
+            preset: "author",
+            end_sequences: ["\n"],
+            frequency_penalty: 1,
+            presence_penalty: 0.1,
+            return_likelihoods: "ALL",
+            raw_prompting: true
           }
         )
-        subject.complete(prompt: "Hello World")
+        subject.complete(
+          prompt: "Hello World",
+          n: 3,
+          stop: ["."],
+          top_k: 1.0,
+          p: 0.5,
+          truncate: "NONE",
+          seed: 5,
+          preset: "author",
+          end_sequences: ["\n"],
+          frequency_penalty: 1,
+          presence_penalty: 0.1,
+          return_likelihoods: "ALL",
+          raw_prompting: true
+        )
       end
     end
   end
