@@ -32,11 +32,21 @@ RSpec.describe Langchain::LLM::Ollama do
   end
 
   describe "#complete" do
+    let(:fixture) { JSON.parse(File.read("spec/fixtures/llm/ollama/generate.json")) }
+
     it "returns a completion", :vcr do
       response = subject.complete(prompt: "In one word, life is ")
 
       expect(response).to be_a(Langchain::LLM::OllamaResponse)
       expect(response.completion).to eq("fragile.")
+    end
+
+    it "builds the parameters properly" do
+      allow(subject.send(:client)).to receive(:post).with("api/generate").and_return(double(body: fixture))
+      response = subject.complete(prompt: "Please help me debug my computer!")
+
+      expect(response).to be_a(Langchain::LLM::OllamaResponse)
+      expect(response.completion).to eq(fixture.dig("response"))
     end
   end
 

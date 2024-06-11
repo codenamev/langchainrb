@@ -133,13 +133,13 @@ module Langchain::LLM
 
       parameters[:options] = llm_parameters.compact
 
-      response = ""
+      streamed_response = ""
 
-      client.post("api/generate") do |req|
+      completed_response = client.post("api/generate") do |req|
         req.body = parameters
 
         req.options.on_data = proc do |chunk, size|
-          chunk.split("\n").each do |line_chunk|
+          chunk.split("\n".dup).each do |line_chunk|
             json_chunk = begin
               JSON.parse(line_chunk)
             # In some instance the chunk exceeds the buffer size and the JSON parser fails
@@ -147,12 +147,14 @@ module Langchain::LLM
               nil
             end
 
-            response += json_chunk.dig("response") unless json_chunk.blank?
+            streamed_response += json_chunk.dig("response") unless json_chunk&.dig("response").blank?
           end
 
           yield json_chunk, size if block
         end
       end
+
+      response = streamed_response.to_s.empty? ? completed_response.body.dig("response") : streamed_response
 
       Langchain::LLM::OllamaResponse.new(response, model: parameters[:model])
     end
