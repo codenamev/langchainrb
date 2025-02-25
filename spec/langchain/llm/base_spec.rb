@@ -12,6 +12,12 @@ end
 RSpec.describe Langchain::LLM::Base do
   let(:subject) { described_class.new }
 
+  describe "#initialize" do
+    it "ensures defaults are automatically assigned" do
+      expect(subject.defaults).to match(described_class::DEFAULTS)
+    end
+  end
+
   describe "#chat" do
     it "raises an error" do
       expect { subject.chat }.to raise_error(NotImplementedError)

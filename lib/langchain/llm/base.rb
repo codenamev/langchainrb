@@ -23,11 +23,17 @@ module Langchain::LLM
   class Base
     include Langchain::DependencyHelper
 
+    DEFAULTS = {}
+
     # A client for communicating with the LLM
     attr_accessor :client
 
     # Default LLM options. Can be overridden by passing `default_options: {}` to the Langchain::LLM::* constructors.
     attr_reader :defaults
+
+    def initialize(options = {})
+      @defaults = DEFAULTS.merge(options[:default_options] || {})
+    end
 
     # Ensuring backward compatibility after https://github.com/patterns-ai-core/langchainrb/pull/586
     # TODO: Delete this method later
